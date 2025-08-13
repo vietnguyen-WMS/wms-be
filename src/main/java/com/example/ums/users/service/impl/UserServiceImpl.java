@@ -2,8 +2,10 @@ package com.example.ums.users.service.impl;
 
 import com.example.ums.users.dto.LoginRequest;
 import com.example.ums.users.dto.LoginResponse;
+import com.example.ums.users.dto.UserResponse;
 import com.example.ums.users.entity.User;
 import com.example.ums.users.repository.UserRepository;
+import com.example.ums.users.service.TokenService;
 import com.example.ums.users.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +14,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -21,6 +22,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TokenService tokenService;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -53,8 +57,8 @@ public class UserServiceImpl implements UserService {
                 return new LoginResponse(false, "Invalid username or password");
             }
 
-            // Generate a simple token (in a real application, use JWT)
-            String token = generateToken();
+            // Generate and save token
+            String token = tokenService.generateAndSaveToken(user);
 
             // Create user info
             LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
@@ -72,12 +76,23 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * Generate a simple authentication token
-     * In a real application, this should be a JWT token
-     * @return generated token
-     */
-    private String generateToken() {
-        return "token_" + UUID.randomUUID().toString().replace("-", "");
+    @Override
+    public UserResponse getCurrentUser(String tokenValue) {
+        logger.info("Getting current user from token");
+
+        try {
+            UserResponse userResponse = tokenService.validateToken(tokenValue);
+            
+            if (userResponse != null) {
+                logger.info("Current user retrieved successfully: {}", userResponse.getUsername());
+            } else {
+                logger.warn("Failed to get current user: invalid or expired token");
+            }
+            
+            return userResponse;
+        } catch (Exception e) {
+            logger.error("Error getting current user from token", e);
+            return null;
+        }
     }
 } 
