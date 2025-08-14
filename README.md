@@ -121,6 +121,31 @@ Health check endpoint.
 Auth service is running
 ```
 
+### Users CRUD
+
+Base path: `/api/v1/users`
+
+```bash
+# List users
+curl 'http://localhost:8080/api/v1/users?page=0&size=20'
+
+# Get user by id
+curl 'http://localhost:8080/api/v1/users/1'
+
+# Create user
+curl -X POST 'http://localhost:8080/api/v1/users' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"john","password":"secret"}'
+
+# Update user
+curl -X PUT 'http://localhost:8080/api/v1/users/1' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"johnny"}'
+
+# Soft delete user
+curl -X DELETE 'http://localhost:8080/api/v1/users/1'
+```
+
 ## Test Users
 
 The application automatically creates two test users on startup:

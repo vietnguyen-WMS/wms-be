@@ -71,6 +71,7 @@ public class TokenServiceImpl implements TokenService {
             return new UserResponse(
                     user.getId(),
                     user.getUsername(),
+                    user.getStatus(),
                     user.getCreatedAt(),
                     user.getUpdatedAt()
             );

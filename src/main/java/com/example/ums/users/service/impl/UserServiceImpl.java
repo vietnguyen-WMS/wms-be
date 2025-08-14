@@ -1,8 +1,6 @@
 package com.example.ums.users.service.impl;
 
-import com.example.ums.users.dto.LoginRequest;
-import com.example.ums.users.dto.LoginResponse;
-import com.example.ums.users.dto.UserResponse;
+import com.example.ums.users.dto.*;
 import com.example.ums.users.entity.User;
 import com.example.ums.users.repository.UserRepository;
 import com.example.ums.users.service.TokenService;
@@ -10,9 +8,15 @@ import com.example.ums.users.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 @Service
@@ -26,7 +30,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private TokenService tokenService;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    @Qualifier("usersPasswordEncoder")
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
@@ -36,7 +42,7 @@ public class UserServiceImpl implements UserService {
             // Find user by username
             Optional<User> userOptional = userRepository.findByUsername(loginRequest.getUsername());
 
-            if (userOptional.isEmpty()) {
+            if (userOptional.isEmpty() || "DELETED".equals(userOptional.get().getStatus())) {
                 logger.warn("Login failed: User not found - {}", loginRequest.getUsername());
                 return new LoginResponse(false, "Invalid username or password");
             }
@@ -64,7 +70,7 @@ public class UserServiceImpl implements UserService {
             LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
                     user.getId(),
                     user.getUsername(),
-                    user.getCreatedAt()
+                    LocalDateTime.ofInstant(user.getCreatedAt(), ZoneOffset.UTC)
             );
 
             logger.info("Login successful for user: {}", loginRequest.getUsername());
@@ -95,4 +101,79 @@ public class UserServiceImpl implements UserService {
             return null;
         }
     }
-} 
+
+    // ================= CRUD operations =================
+
+    @Override
+    public Page<UserResponse> search(int page, int size, String q, boolean includeDeleted) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userRepository.search(q, includeDeleted, pageable)
+                .map(this::toResponse);
+    }
+
+    @Override
+    public UserResponse get(Long id) {
+        User user = userRepository.findById(id)
+                .filter(u -> !"DELETED".equals(u.getStatus()))
+                .orElseThrow(() -> new com.example.ums.users.exception.UserNotFoundException("User not found"));
+        return toResponse(user);
+    }
+
+    @Override
+    public UserResponse create(CreateUserRequest req) {
+        if (userRepository.existsByUsername(req.getUsername())) {
+            throw new com.example.ums.users.exception.UsernameAlreadyExistsException("Username already exists");
+        }
+
+        User user = new User();
+        user.setUsername(req.getUsername());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setStatus("ACTIVE");
+        user = userRepository.save(user);
+        return toResponse(user);
+    }
+
+    @Override
+    public UserResponse update(Long id, UpdateUserRequest req) {
+        User user = userRepository.findById(id)
+                .filter(u -> !"DELETED".equals(u.getStatus()))
+                .orElseThrow(() -> new com.example.ums.users.exception.UserNotFoundException("User not found"));
+
+        if (req.getUsername() != null && !req.getUsername().equals(user.getUsername())) {
+            if (userRepository.existsByUsername(req.getUsername())) {
+                throw new com.example.ums.users.exception.UsernameAlreadyExistsException("Username already exists");
+            }
+            user.setUsername(req.getUsername());
+        }
+
+        if (req.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(req.getPassword()));
+        }
+
+        if (req.getStatus() != null) {
+            user.setStatus(req.getStatus());
+        }
+
+        user = userRepository.save(user);
+        return toResponse(user);
+    }
+
+    @Override
+    public void delete(Long id) {
+        User user = userRepository.findById(id)
+                .filter(u -> !"DELETED".equals(u.getStatus()))
+                .orElseThrow(() -> new com.example.ums.users.exception.UserNotFoundException("User not found"));
+        user.setStatus("DELETED");
+        userRepository.save(user);
+    }
+
+    private UserResponse toResponse(User user) {
+        return new UserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getStatus(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
+    }
+}
