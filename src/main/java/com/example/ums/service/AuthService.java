@@ -37,7 +37,7 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ResponseStatusException.class)
     public LoginResponse login(String username, String password) {
         UserEntity user = userRepository.findByUsernameIgnoreCase(username)
                 .filter(u -> u.getDeletedAt() == null)
