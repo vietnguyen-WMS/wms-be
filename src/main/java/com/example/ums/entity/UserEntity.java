@@ -23,6 +23,9 @@ public class UserEntity {
     @Column(name = "status_id")
     private Short statusId;
 
+    @Column(name = "role_id")
+    private Short roleId;
+
     @Column(name = "failed_login_attempts")
     private Integer failedLoginAttempts;
 
@@ -55,6 +58,9 @@ public class UserEntity {
 
     public Short getStatusId() { return statusId; }
     public void setStatusId(Short statusId) { this.statusId = statusId; }
+
+    public Short getRoleId() { return roleId; }
+    public void setRoleId(Short roleId) { this.roleId = roleId; }
 
     public Integer getFailedLoginAttempts() { return failedLoginAttempts; }
     public void setFailedLoginAttempts(Integer failedLoginAttempts) { this.failedLoginAttempts = failedLoginAttempts; }

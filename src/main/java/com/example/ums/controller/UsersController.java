@@ -47,4 +47,10 @@ public class UsersController {
         userService.delete(id, user.id());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/reset-failed-attempts")
+    public UserResponse resetFailedAttempts(@PathVariable Long id, Authentication auth) {
+        AuthUser user = (AuthUser) auth.getPrincipal();
+        return userService.resetFailedAttempts(id, user.id());
+    }
 }
