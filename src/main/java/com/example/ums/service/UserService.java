@@ -138,11 +138,17 @@ public class UserService {
 
     @Transactional
     public UserResponse resetFailedAttempts(Long id, Long currentUserId) {
+        UserEntity current = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Current user not found"));
+        Short adminRoleId = resolveRoleId("admin", null);
+        if (!adminRoleId.equals(current.getRoleId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can unlock accounts");
+        }
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        Short adminRoleId = resolveRoleId("admin", null);
-        if (!adminRoleId.equals(user.getRoleId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not admin");
+        Short lockedId = resolveStatusId("locked", null);
+        if (!lockedId.equals(user.getStatusId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not locked");
         }
         user.setFailedLoginAttempts(0);
         Short activeId = resolveStatusId("active", "active");

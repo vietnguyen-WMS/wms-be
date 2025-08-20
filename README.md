@@ -53,3 +53,10 @@ curl -b cookie.txt -X DELETE http://localhost:8080/users/2
 ```bash
 curl -b cookie.txt -X POST http://localhost:8080/auth/logout
 ```
+
+### Unlock locked user (admin only)
+Resets a locked user's `failed_login_attempts` to zero and sets status back to `active`. The caller must be an admin.
+
+```bash
+curl -b cookie.txt -X POST http://localhost:8080/users/<userId>/reset-failed-attempts
+```
