@@ -34,18 +34,18 @@ public class UsersController {
         return userService.create(req, user.id());
     }
 
-    @PutMapping("/{id}")
-    @PatchMapping("/{id}")
-    public UserResponse update(@PathVariable Long id, @RequestBody UserUpdateRequest req, Authentication auth) {
-        AuthUser user = (AuthUser) auth.getPrincipal();
-        return userService.update(id, req, user.id());
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
         AuthUser user = (AuthUser) auth.getPrincipal();
         userService.delete(id, user.id());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/password")
+    public UserResponse resetPassword(@PathVariable Long id, @Valid @RequestBody PasswordResetRequest req,
+                                      Authentication auth) {
+        AuthUser user = (AuthUser) auth.getPrincipal();
+        return userService.resetPassword(id, req, user.id());
     }
 
     @PostMapping("/{id}/reset-failed-attempts")

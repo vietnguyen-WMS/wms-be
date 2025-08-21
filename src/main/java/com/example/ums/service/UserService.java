@@ -61,9 +61,9 @@ public class UserService {
         UserEntity user = new UserEntity();
         user.setUsername(req.username());
         user.setPasswordHash(passwordEncoder.encode(req.password()));
-        Short statusId = resolveStatusId(req.statusCode(), "active");
+        Short statusId = resolveStatusId("active", null);
         user.setStatusId(statusId);
-        Short roleId = resolveRoleId(req.roleCode(), "operator");
+        Short roleId = resolveRoleId(req.roleCode(), null);
         user.setRoleId(roleId);
         user.setFailedLoginAttempts(0);
         Instant now = Instant.now();
@@ -78,33 +78,6 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse update(Long id, UserUpdateRequest req, Long currentUserId) {
-        UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        if (req.username() != null && !req.username().equalsIgnoreCase(user.getUsername())) {
-            if (userRepository.existsByUsernameIgnoreCase(req.username())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
-            }
-            user.setUsername(req.username());
-        }
-        if (req.password() != null) {
-            user.setPasswordHash(passwordEncoder.encode(req.password()));
-        }
-        if (req.statusCode() != null) {
-            user.setStatusId(resolveStatusId(req.statusCode(), null));
-        }
-        if (req.roleCode() != null) {
-            user.setRoleId(resolveRoleId(req.roleCode(), null));
-        }
-        user.setUpdatedAt(Instant.now());
-        user.setUpdatedBy(currentUserId);
-        userRepository.save(user);
-        String status = statusCodeRepository.findById(user.getStatusId()).map(StatusCodeEntity::getCode).orElse(null);
-        String role = userRoleRepository.findById(user.getRoleId()).map(UserRoleEntity::getCode).orElse(null);
-        return UserMapper.toResponse(user, status, role);
-    }
-
-    @Transactional
     public void delete(Long id, Long currentUserId) {
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -114,6 +87,41 @@ public class UserService {
         user.setUpdatedAt(Instant.now());
         user.setUpdatedBy(currentUserId);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public UserResponse changePassword(PasswordChangeRequest req, Long currentUserId) {
+        UserEntity user = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (!passwordEncoder.matches(req.oldPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Old password incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
+        user.setUpdatedAt(Instant.now());
+        user.setUpdatedBy(currentUserId);
+        userRepository.save(user);
+        String status = statusCodeRepository.findById(user.getStatusId()).map(StatusCodeEntity::getCode).orElse(null);
+        String role = userRoleRepository.findById(user.getRoleId()).map(UserRoleEntity::getCode).orElse(null);
+        return UserMapper.toResponse(user, status, role);
+    }
+
+    @Transactional
+    public UserResponse resetPassword(Long id, PasswordResetRequest req, Long currentUserId) {
+        UserEntity current = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Current user not found"));
+        Short adminRoleId = resolveRoleId("admin", null);
+        if (!adminRoleId.equals(current.getRoleId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can reset passwords");
+        }
+        UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
+        user.setUpdatedAt(Instant.now());
+        user.setUpdatedBy(currentUserId);
+        userRepository.save(user);
+        String status = statusCodeRepository.findById(user.getStatusId()).map(StatusCodeEntity::getCode).orElse(null);
+        String role = userRoleRepository.findById(user.getRoleId()).map(UserRoleEntity::getCode).orElse(null);
+        return UserMapper.toResponse(user, status, role);
     }
 
     private Short resolveStatusId(String code, String defaultCode) {

@@ -26,10 +26,11 @@ curl -b cookie.txt http://localhost:8080/auth/me
 ```
 
 ### Create user
+`roleCode` must be provided (e.g., `user` or `admin`). Newly created users start with `active` status.
 ```bash
 curl -b cookie.txt -X POST http://localhost:8080/users \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"alice@123","statusCode":"active"}'
+  -d '{"username":"alice","password":"alice@123","roleCode":"user"}'
 ```
 
 ### List users
@@ -37,11 +38,20 @@ curl -b cookie.txt -X POST http://localhost:8080/users \
 curl -b cookie.txt "http://localhost:8080/users?page=0&size=10"
 ```
 
-### Update user
+### Change own password
+Requires the user's current password.
 ```bash
-curl -b cookie.txt -X PATCH http://localhost:8080/users/2 \
+curl -b cookie.txt -X POST http://localhost:8080/me/password \
   -H "Content-Type: application/json" \
-  -d '{"password":"newStrongPass"}'
+  -d '{"oldPassword":"alice@123","newPassword":"newStrongPass"}'
+```
+
+### Admin reset another user's password
+Admins can set a new password for any user without the old password.
+```bash
+curl -b cookie.txt -X POST http://localhost:8080/users/2/password \
+  -H "Content-Type: application/json" \
+  -d '{"newPassword":"newStrongPass"}'
 ```
 
 ### Soft delete
