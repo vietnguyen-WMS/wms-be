@@ -53,13 +53,11 @@ class UserServiceTest {
         UserRoleEntity adminRole = new UserRoleEntity();
         adminRole.setCode("admin");
         adminRole.setName("Admin");
-        adminRole.setIsActive(true);
         adminRole = userRoleRepository.save(adminRole);
 
         UserRoleEntity userRole = new UserRoleEntity();
         userRole.setCode("user");
         userRole.setName("User");
-        userRole.setIsActive(true);
         userRole = userRoleRepository.save(userRole);
 
         admin = new UserEntity();
