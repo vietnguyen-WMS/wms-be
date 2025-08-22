@@ -8,7 +8,7 @@
                 <version>3.3.2</version>
                 <relativePath/>
         </parent>
-	<groupId>com.example</groupId>
+        <groupId>com.vietnguyen</groupId>
 	<artifactId>ums</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ums</name>
