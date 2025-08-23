@@ -13,7 +13,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import com.vietnguyen.ums.exception.ApiException;
 import org.springframework.http.HttpStatus;
 
 @RestController
@@ -38,7 +38,7 @@ public class AuthController {
     @GetMapping("/me")
     public UserInfo me(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthUser user)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Unauthorized");
         }
         return authService.getUserInfo(user.id());
     }

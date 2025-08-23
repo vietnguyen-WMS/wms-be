@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import com.vietnguyen.ums.exception.ApiException;
 
 import java.time.Instant;
 
@@ -45,7 +45,7 @@ public class UserService {
 
     public UserResponse get(Long id) {
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
         String status = statusCodeRepository.findById(user.getStatusId())
                 .map(StatusCodeEntity::getCode).orElse(null);
         String role = userRoleRepository.findById(user.getRoleId())
@@ -56,7 +56,7 @@ public class UserService {
     @Transactional
     public UserResponse create(UserCreateRequest req, Long currentUserId) {
         if (userRepository.existsByUsernameIgnoreCase(req.username())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+            throw new ApiException(HttpStatus.CONFLICT, "USERNAME_ALREADY_EXISTS", "Username already exists");
         }
         UserEntity user = new UserEntity();
         user.setUsername(req.username());
@@ -80,7 +80,7 @@ public class UserService {
     @Transactional
     public void delete(Long id, Long currentUserId) {
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
         user.setDeletedAt(Instant.now());
         Short inactiveId = resolveStatusId("inactive", "inactive");
         user.setStatusId(inactiveId);
@@ -92,9 +92,9 @@ public class UserService {
     @Transactional
     public UserResponse changePassword(PasswordChangeRequest req, Long currentUserId) {
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
         if (!passwordEncoder.matches(req.oldPassword(), user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Old password incorrect");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "OLD_PASSWORD_INCORRECT", "Old password incorrect");
         }
         user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
         user.setUpdatedAt(Instant.now());
@@ -108,13 +108,13 @@ public class UserService {
     @Transactional
     public UserResponse resetPassword(Long id, PasswordResetRequest req, Long currentUserId) {
         UserEntity current = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Current user not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CURRENT_USER_NOT_FOUND", "Current user not found"));
         Short adminRoleId = resolveRoleId("admin", null);
         if (!adminRoleId.equals(current.getRoleId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can reset passwords");
+            throw new ApiException(HttpStatus.FORBIDDEN, "ONLY_ADMIN_CAN_RESET_PASSWORDS", "Only admin can reset passwords");
         }
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
         user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
         user.setUpdatedAt(Instant.now());
         user.setUpdatedBy(currentUserId);
@@ -127,36 +127,36 @@ public class UserService {
     private Short resolveStatusId(String code, String defaultCode) {
         String c = code != null ? code : defaultCode;
         if (c == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status code required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "STATUS_CODE_REQUIRED", "Status code required");
         }
         return statusCodeRepository.findByDomainAndCode("ums", c)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status code"))
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STATUS_CODE", "Invalid status code"))
                 .getId();
     }
 
     private Short resolveRoleId(String code, String defaultCode) {
         String c = code != null ? code : defaultCode;
         if (c == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role code required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "ROLE_CODE_REQUIRED", "Role code required");
         }
         return userRoleRepository.findByCode(c)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role code"))
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ROLE_CODE", "Invalid role code"))
                 .getId();
     }
 
     @Transactional
     public UserResponse resetFailedAttempts(Long id, Long currentUserId) {
         UserEntity current = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Current user not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CURRENT_USER_NOT_FOUND", "Current user not found"));
         Short adminRoleId = resolveRoleId("admin", null);
         if (!adminRoleId.equals(current.getRoleId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can unlock accounts");
+            throw new ApiException(HttpStatus.FORBIDDEN, "ONLY_ADMIN_CAN_UNLOCK_ACCOUNTS", "Only admin can unlock accounts");
         }
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
         Short lockedId = resolveStatusId("locked", null);
         if (!lockedId.equals(user.getStatusId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not locked");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "USER_NOT_LOCKED", "User is not locked");
         }
         user.setFailedLoginAttempts(0);
         Short activeId = resolveStatusId("active", "active");

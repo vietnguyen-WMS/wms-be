@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.server.ResponseStatusException;
+import com.vietnguyen.ums.exception.ApiException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -63,9 +63,9 @@ class AuthServiceTest {
         for (int i = 1; i <= 5; i++) {
             try {
                 authService.login("john", "wrong");
-                fail("Expected ResponseStatusException");
-            } catch (ResponseStatusException ex) {
-                assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+                fail("Expected ApiException");
+            } catch (ApiException ex) {
+                assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
             }
             UserEntity user = userRepository.findByUsernameIgnoreCase("john").orElseThrow();
             assertEquals(i, user.getFailedLoginAttempts());

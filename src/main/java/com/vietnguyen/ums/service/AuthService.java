@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import com.vietnguyen.ums.exception.ApiException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -41,21 +41,21 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
-    @Transactional(noRollbackFor = ResponseStatusException.class)
+    @Transactional(noRollbackFor = ApiException.class)
     public LoginResponse login(String username, String password) {
         UserEntity user = userRepository.findByUsernameIgnoreCase(username)
                 .filter(u -> u.getDeletedAt() == null)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid credentials"));
 
         String statusCode = statusCodeRepository.findById(user.getStatusId())
                 .map(StatusCodeEntity::getCode).orElse(null);
         String roleCode = userRoleRepository.findById(user.getRoleId())
                 .map(UserRoleEntity::getCode).orElse(null);
         if ("inactive".equalsIgnoreCase(statusCode)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User inactive");
+            throw new ApiException(HttpStatus.FORBIDDEN, "USER_INACTIVE", "User inactive");
         }
         if ("locked".equalsIgnoreCase(statusCode)) {
-            throw new ResponseStatusException(HttpStatus.LOCKED, "Account locked");
+            throw new ApiException(HttpStatus.LOCKED, "ACCOUNT_LOCKED", "Account locked");
         }
 
         if (passwordEncoder.matches(password, user.getPasswordHash())) {
@@ -71,7 +71,7 @@ public class AuthService {
             user.setFailedLoginAttempts(attempts);
             if (attempts >= LOCK_THRESHOLD) {
                 Short lockedId = statusCodeRepository.findByDomainAndCode("ums", "locked")
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Missing status code"))
+                        .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "MISSING_STATUS_CODE", "Missing status code"))
                         .getId();
                 user.setStatusId(lockedId);
                 log.info("User {} locked after {} failed attempts", username, attempts);
@@ -79,13 +79,13 @@ public class AuthService {
                 log.info("Login failed for {} attempt {}", username, attempts);
             }
             userRepository.save(user);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid credentials");
         }
     }
 
     public UserInfo getUserInfo(Long userId) {
         UserEntity user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
         String statusCode = statusCodeRepository.findById(user.getStatusId())
                 .map(StatusCodeEntity::getCode).orElse(null);
         String roleCode = userRoleRepository.findById(user.getRoleId())
