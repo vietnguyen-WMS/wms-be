@@ -2,9 +2,9 @@ spring:
   application:
     name: wms
   datasource:
-    url: jdbc:postgresql://localhost:5432/wms?currentSchema=ums
-    username: wms
-    password: wms
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/wms?currentSchema=ums
+    username: ${DB_USERNAME:wms}
+    password: ${DB_PASSWORD:wms}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

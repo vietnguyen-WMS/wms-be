@@ -5,6 +5,16 @@ Spring Boot User Management service with cookie-based JWT auth and PostgreSQL.
 ## Quick Start
 
 Ensure PostgreSQL is running (Docker compose already includes it) and the database has the required schema and seed data.
+The application reads database connection details from the following environment variables, each with sensible defaults:
+
+| Variable      | Default    | Description                  |
+| ------------- | ---------- | ---------------------------- |
+| `DB_HOST`     | `localhost`| PostgreSQL host name         |
+| `DB_PORT`     | `5432`     | PostgreSQL port              |
+| `DB_USERNAME` | `wms`      | Database user                |
+| `DB_PASSWORD` | `wms`      | Database password            |
+
+For example, when running the API in a Docker network together with the database service, set `DB_HOST=db` so the application can reach the database container.
 
 ```bash
 mvn clean package
