@@ -11,6 +11,8 @@ The application reads database connection details from the following environment
 | ------------- | ---------- | ---------------------------- |
 | `DB_HOST`     | `localhost`| PostgreSQL host name         |
 | `DB_PORT`     | `5432`     | PostgreSQL port              |
+| `DB_NAME`     | `wms`      | Database name                |
+| `DB_SCHEMA`   | `ums`      | Default schema               |
 | `DB_USERNAME` | `wms`      | Database user                |
 | `DB_PASSWORD` | `wms`      | Database password            |
 
