@@ -22,7 +22,7 @@ server:
 app:
   jwt:
     secret: "change-me-very-long-random-secret"
-    expiration-minutes: 60
+    expiration-minutes: 1440
   auth:
     cookie:
       name: "AUTH_TOKEN"
