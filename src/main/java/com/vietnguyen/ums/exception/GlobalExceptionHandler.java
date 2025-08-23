@@ -19,10 +19,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
-        String msg = ex.getBindingResult().getFieldErrors().stream()
-                .findFirst().map(f -> f.getField() + ": " + f.getDefaultMessage())
+        var fieldError = ex.getBindingResult().getFieldErrors().stream().findFirst();
+        String msg = fieldError
+                .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .orElse("Validation error");
-        ErrorResponse body = new ErrorResponse("VALIDATION_ERROR", msg, req.getRequestURI(), Instant.now());
+        String code = fieldError
+                .map(f -> toCode(f.getField() + " " + f.getDefaultMessage()))
+                .orElse("VALIDATION_ERROR");
+        ErrorResponse body = new ErrorResponse(code, msg, req.getRequestURI(), Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    private String toCode(String input) {
+        return input.toUpperCase()
+                .replaceAll("[^A-Z0-9]+", "_")
+                .replaceAll("^_|_$", "");
     }
 }
