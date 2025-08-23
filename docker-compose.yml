@@ -1,16 +1,27 @@
-version: '3.8'
+name: wms-be
+
 services:
   db:
     image: postgres:16
-    container_name: wms_db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: wms
       POSTGRES_PASSWORD: wms
       POSTGRES_DB: wms
+      TZ: Asia/Bangkok
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:
