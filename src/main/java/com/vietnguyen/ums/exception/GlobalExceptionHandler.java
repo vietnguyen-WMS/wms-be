@@ -13,7 +13,7 @@ import java.time.Instant;
 public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handle(ApiException ex, HttpServletRequest req) {
-        ErrorResponse body = new ErrorResponse(ex.getCode(), ex.getMessage(), req.getRequestURI(), Instant.now());
+        ErrorResponse body = new ErrorResponse(ex.getMessageCode(), ex.getMessage(), req.getRequestURI(), Instant.now());
         return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
@@ -23,10 +23,10 @@ public class GlobalExceptionHandler {
         String msg = fieldError
                 .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .orElse("Validation error");
-        String code = fieldError
+        String messageCode = fieldError
                 .map(f -> toCode(f.getField() + " " + f.getDefaultMessage()))
                 .orElse("VALIDATION_ERROR");
-        ErrorResponse body = new ErrorResponse(code, msg, req.getRequestURI(), Instant.now());
+        ErrorResponse body = new ErrorResponse(messageCode, msg, req.getRequestURI(), Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
