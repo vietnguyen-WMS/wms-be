@@ -170,15 +170,17 @@ BEFORE UPDATE ON ums.user_info
 FOR EACH ROW
 EXECUTE FUNCTION ums.tg_user_info_set_updated_at();
 
--- (Optional) VIEW public: chỉ trả về field được bật public
-CREATE OR REPLACE VIEW ums.v_public_user_profile AS
+-- VIEW: users_view exposes public user information
+CREATE OR REPLACE VIEW ums.users_view AS
 SELECT
-  ui.user_id,
+  u.id AS user_id,
+  u.username,
   CASE WHEN ui.is_display_name_public THEN ui.display_name END AS display_name,
   CASE WHEN ui.is_avatar_public       THEN ui.avatar_url   END AS avatar_url,
   CASE WHEN ui.is_bio_public          THEN ui.bio          END AS bio,
   CASE WHEN ui.is_address_public      THEN ui.address      END AS address
-FROM ums.user_info ui;
+FROM ums.users u
+LEFT JOIN ums.user_info ui ON ui.user_id = u.id;
 
 -- 6) Seed minimal status codes
 INSERT INTO ums.status_codes (domain, code, name, is_active, sort_order)
