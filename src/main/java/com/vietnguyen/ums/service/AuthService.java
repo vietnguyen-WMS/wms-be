@@ -5,9 +5,11 @@ import com.vietnguyen.ums.dto.UserInfo;
 import com.vietnguyen.ums.entity.StatusCodeEntity;
 import com.vietnguyen.ums.entity.UserEntity;
 import com.vietnguyen.ums.entity.UserRoleEntity;
+import com.vietnguyen.ums.entity.UserInfoEntity;
 import com.vietnguyen.ums.repo.StatusCodeRepository;
 import com.vietnguyen.ums.repo.UserRepository;
 import com.vietnguyen.ums.repo.UserRoleRepository;
+import com.vietnguyen.ums.repo.UserInfoRepository;
 import com.vietnguyen.ums.security.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -29,14 +31,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final StatusCodeRepository statusCodeRepository;
     private final UserRoleRepository userRoleRepository;
+    private final UserInfoRepository userInfoRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository, StatusCodeRepository statusCodeRepository,
-                       UserRoleRepository userRoleRepository, BCryptPasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+                       UserRoleRepository userRoleRepository, UserInfoRepository userInfoRepository,
+                       BCryptPasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.statusCodeRepository = statusCodeRepository;
         this.userRoleRepository = userRoleRepository;
+        this.userInfoRepository = userInfoRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
     }
@@ -63,7 +68,8 @@ public class AuthService {
             user.setLastLoginAt(Instant.now());
             userRepository.save(user);
             String token = jwtUtil.generateToken(user);
-            UserInfo info = UserMapper.toInfo(user, statusCode, roleCode);
+            UserInfoEntity infoEntity = userInfoRepository.findById(user.getId()).orElse(null);
+            UserInfo info = UserMapper.toInfo(user, infoEntity, statusCode, roleCode);
             log.info("Login success for {}", username);
             return new LoginResponse(token, info);
         } else {
@@ -90,6 +96,7 @@ public class AuthService {
                 .map(StatusCodeEntity::getCode).orElse(null);
         String roleCode = userRoleRepository.findById(user.getRoleId())
                 .map(UserRoleEntity::getCode).orElse(null);
-        return UserMapper.toInfo(user, statusCode, roleCode);
+        UserInfoEntity infoEntity = userInfoRepository.findById(user.getId()).orElse(null);
+        return UserMapper.toInfo(user, infoEntity, statusCode, roleCode);
     }
 }
