@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_users_role_id    ON ums.users(role_id);
 CREATE INDEX IF NOT EXISTS idx_users_created_by ON ums.users(created_by);
 CREATE INDEX IF NOT EXISTS idx_users_updated_by ON ums.users(updated_by);
 
--- 5) Trigger: auto-update updated_at on UPDATE
+-- 5) Trigger: auto-update updated_at on UPDATE (users)
 CREATE OR REPLACE FUNCTION ums.tg_set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -128,6 +128,57 @@ CREATE TRIGGER set_updated_at
 BEFORE UPDATE ON ums.users
 FOR EACH ROW
 EXECUTE FUNCTION ums.tg_set_updated_at();
+
+-- 4.1) NEW: Table user_info (1-1 với users) + trigger + view
+CREATE TABLE IF NOT EXISTS ums.user_info (
+  user_id      BIGINT PRIMARY KEY
+               REFERENCES ums.users(id) ON DELETE CASCADE,
+
+  -- fields có thể public
+  first_name   TEXT,
+  last_name    TEXT,
+
+  display_name TEXT NOT NULL,
+  avatar_url   TEXT,
+  bio          TEXT,
+  address      TEXT,
+
+  -- flag hiển thị công khai
+  is_display_name_public BOOLEAN NOT NULL DEFAULT TRUE,
+  is_avatar_public       BOOLEAN NOT NULL DEFAULT TRUE,
+  is_bio_public          BOOLEAN NOT NULL DEFAULT TRUE,
+  is_address_public      BOOLEAN NOT NULL DEFAULT FALSE,
+
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Trigger updated_at cho user_info
+CREATE OR REPLACE FUNCTION ums.tg_user_info_set_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END
+$$;
+
+DROP TRIGGER IF EXISTS set_updated_at ON ums.user_info;
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON ums.user_info
+FOR EACH ROW
+EXECUTE FUNCTION ums.tg_user_info_set_updated_at();
+
+-- (Optional) VIEW public: chỉ trả về field được bật public
+CREATE OR REPLACE VIEW ums.v_public_user_profile AS
+SELECT
+  ui.user_id,
+  CASE WHEN ui.is_display_name_public THEN ui.display_name END AS display_name,
+  CASE WHEN ui.is_avatar_public       THEN ui.avatar_url   END AS avatar_url,
+  CASE WHEN ui.is_bio_public          THEN ui.bio          END AS bio,
+  CASE WHEN ui.is_address_public      THEN ui.address      END AS address
+FROM ums.user_info ui;
 
 -- 6) Seed minimal status codes
 INSERT INTO ums.status_codes (domain, code, name, is_active, sort_order)
@@ -148,7 +199,7 @@ INSERT INTO ums.user_roles (code, name) VALUES
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name;
 
--- 7) Seed/Upsert admin user with password 'admin@123' and role = 'admin'
+-- 7) Seed/Upsert admin user với password 'admin@123', role = 'admin'
 INSERT INTO ums.users (username, password_hash, status_id, role_id, created_at, updated_at)
 VALUES (
   'admin',
@@ -164,11 +215,40 @@ SET password_hash = EXCLUDED.password_hash,
     role_id       = EXCLUDED.role_id,
     updated_at    = NOW();
 
--- Set created_by / updated_by = itself if NULL
+-- Set created_by / updated_by = chính nó nếu NULL
 UPDATE ums.users u
 SET created_by = u.id,
     updated_by = u.id
 WHERE u.username = 'admin'
   AND (u.created_by IS NULL OR u.updated_by IS NULL);
+
+-- 7.1) Seed/Upsert user_info cho admin
+WITH admin_row AS (
+  SELECT id
+  FROM ums.users
+  WHERE username = 'admin'
+  LIMIT 1
+)
+INSERT INTO ums.user_info (
+  user_id, first_name, last_name, display_name, avatar_url, bio, address,
+  is_display_name_public, is_avatar_public, is_bio_public, is_address_public,
+  created_at, updated_at
+)
+SELECT
+  ar.id,
+  'System'::text,
+  'Administrator'::text,
+  'Administrator'::text,
+  NULL,
+  'System administrator account',
+  NULL,
+  TRUE, TRUE, TRUE, FALSE,
+  NOW(), NOW()
+FROM admin_row ar
+ON CONFLICT (user_id) DO UPDATE
+SET
+  display_name = EXCLUDED.display_name,
+  bio          = EXCLUDED.bio,
+  updated_at   = NOW();
 
 COMMIT;
