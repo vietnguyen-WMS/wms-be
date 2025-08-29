@@ -7,19 +7,21 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class ViewService {
     private final JdbcTemplate jdbcTemplate;
+    private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z0-9_]+");
 
     public ViewService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     public PagedResponse<Map<String, Object>> query(ViewQueryRequest req) {
-        String table = req.tbl();
-        String schema = req.schema();
+        String table = safeIdentifier(req.tbl());
+        String schema = safeIdentifier(req.schema());
         int page = Math.max(1, req.page());
         int size = Math.max(1, req.pageSize());
 
@@ -36,7 +38,7 @@ public class ViewService {
 
         if (req.defaultSorts() != null && !req.defaultSorts().isEmpty()) {
             String order = req.defaultSorts().stream()
-                    .map(s -> s.field() + (s.asc() ? " ASC" : " DESC"))
+                    .map(s -> safeIdentifier(s.field()) + (s.asc() ? " ASC" : " DESC"))
                     .collect(Collectors.joining(", "));
             selectSql += " ORDER BY " + order;
         }
@@ -55,9 +57,17 @@ public class ViewService {
     private String buildWhere(List<ViewFilter> filters, List<Object> params) {
         if (filters == null || filters.isEmpty()) return "";
         return filters.stream().map(f -> {
-            String op = f.op() != null ? f.op() : "=";
+            String field = safeIdentifier(f.field());
+            String op = f.op() != null ? f.op().sql() : "=";
             params.add(f.value());
-            return f.field() + " " + op + " ?";
+            return field + " " + op + " ?";
         }).collect(Collectors.joining(" AND "));
+    }
+
+    private String safeIdentifier(String name) {
+        if (name == null || !IDENTIFIER.matcher(name).matches()) {
+            throw new IllegalArgumentException("Invalid identifier: " + name);
+        }
+        return name;
     }
 }

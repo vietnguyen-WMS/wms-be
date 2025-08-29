@@ -70,3 +70,18 @@ Resets a locked user's `failed_login_attempts` to zero and sets status back to `
 ```bash
 curl -b cookie.txt -X POST http://localhost:8080/users/<userId>/reset-failed-attempts
 ```
+
+### Query database views
+```bash
+curl -b cookie.txt -X POST http://localhost:8080/views \
+  -H "Content-Type: application/json" \
+  -d '{
+        "tbl":"USERS_VIEW",
+        "schema":"ums",
+        "default_sorts":[{"field":"id","asc":true}],
+        "page":1,
+        "page_size":50,
+        "filters":[{"field":"username","op":"LIKE","value":"%admin%"}]
+      }'
+```
+Supported filter operators: `EQ`, `NE`, `GT`, `GTE`, `LT`, `LTE`, `LIKE`.
