@@ -182,7 +182,7 @@ EXECUTE FUNCTION ums.tg_user_info_set_updated_at();
 -- VIEW: users_view exposes public user information
 CREATE OR REPLACE VIEW ums.users_view AS
 SELECT
-  u.id AS user_id,
+  u.id AS id,
   u.username,
   CASE WHEN ui.is_display_name_public THEN ui.display_name END AS display_name,
   CASE WHEN ui.is_avatar_public       THEN ui.avatar_url   END AS avatar_url,
