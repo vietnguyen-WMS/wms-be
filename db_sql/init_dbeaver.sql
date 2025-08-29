@@ -1,14 +1,14 @@
+-- Install required extensions in the public schema first
+CREATE EXTENSION IF NOT EXISTS citext   SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA public;
+
 BEGIN;
 
 -- Ensure objects go into the public schema unless explicitly qualified
-SET search_path TO public;
+SET search_path TO public, pg_catalog;
 
--- 1) Schema + extensions
+-- 1) Schema definition
 CREATE SCHEMA IF NOT EXISTS ums;
-
-CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 -- 2) Table: status_codes
 CREATE TABLE IF NOT EXISTS ums.status_codes (
