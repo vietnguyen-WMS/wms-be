@@ -50,7 +50,7 @@ public class ViewService {
         selectParams.add((page - 1) * size);
 
         List<Map<String, Object>> items = jdbcTemplate.queryForList(selectSql, selectParams.toArray());
-        Long total = jdbcTemplate.queryForObject(countSql, whereParams.toArray(), Long.class);
+        Long total = jdbcTemplate.queryForObject(countSql, Long.class, whereParams.toArray());
         return new PagedResponse<>(items, page, size, total);
     }
 
